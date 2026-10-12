@@ -1,10 +1,10 @@
 const CACHE_NAME = 'stockmasterr-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './manifest.json'
 ];
 
 // Instalación: guardar recursos en caché
