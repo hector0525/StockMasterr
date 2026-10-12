@@ -1,7 +1,7 @@
 <?php
 $servidor = "localhost";
 $usuario = "root";
-$contraseña = "12345678";
+$contraseña = "mysql123";
 $base_datos = "sistema_almacen";
 
 $conn = new mysqli($servidor, $usuario, $contraseña, $base_datos);
