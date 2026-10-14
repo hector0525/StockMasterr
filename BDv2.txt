@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     turno VARCHAR(50) COMMENT 'Solo para operarios',
     departamento VARCHAR(100) COMMENT 'Solo para gerentes',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    contraseña INT NOT NULL,
+    contrasena INT NOT NULL,
     INDEX idx_email (email),
     INDEX idx_rol (rol)
 ) ENGINE=InnoDB;
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     telefono VARCHAR(20) NOT NULL,
     direccion VARCHAR(255),
     ciudad VARCHAR(100),
-    contraseña INT NOT NULL,
+    contrasena INT NOT NULL,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email (email)
 ) ENGINE=InnoDB;
@@ -195,13 +195,13 @@ CREATE TABLE IF NOT EXISTS reportes (
 -- ========================================
 
 -- Usuarios
-INSERT INTO usuarios (nombre, email, telefono, rol, turno, departamento, contraseña) VALUES
+INSERT INTO usuarios (nombre, email, telefono, rol, turno, departamento, contrasena) VALUES
 ('Admin Principal', 'admin@almacen.com', '5551234567', 'administrador', NULL, NULL, 123456),
 ('Juan Operario', 'operario@almacen.com', '5557654321', 'operario', 'Matutino', NULL, 654321),
 ('María Gerente', 'gerente@almacen.com', '5559876543', 'gerente', NULL, 'Ventas', 987654);
 
 -- Clientes
-INSERT INTO clientes (nombre, email, telefono, direccion, ciudad, contraseña) VALUES
+INSERT INTO clientes (nombre, email, telefono, direccion, ciudad, contrasena) VALUES
 ('Carlos López', 'carlos@correo.com', '5551112222', 'Av. Reforma 101', 'Ciudad de México', 111111),
 ('Ana Torres', 'ana@correo.com', '5553334444', 'Calle Central 22', 'Guadalajara', 222222),
 ('Luis García', 'luis@correo.com', '5555556666', 'Blvd. Norte 55', 'Monterrey', 333333);

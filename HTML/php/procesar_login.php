@@ -13,7 +13,7 @@ $role = trim($_POST['role']);
 
 // CLIENTE
 if ($role === 'cliente') {
-    $sql = "SELECT * FROM clientes WHERE email = ? AND contraseña = ?";
+    $sql = "SELECT * FROM clientes WHERE email = ? AND contrasena = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ss", $email, $password);
     $stmt->execute();
@@ -32,7 +32,7 @@ if ($role === 'cliente') {
 }
 
 else {
-    $sql = "SELECT * FROM usuarios WHERE email = ? AND contraseña = ? AND rol = ?";
+    $sql = "SELECT * FROM usuarios WHERE email = ? AND contrasena = ? AND rol = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sss", $email, $password, $role);
     $stmt->execute();

@@ -9,14 +9,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = trim($_POST['email']);
     $telefono = trim($_POST['telefono']);
     $rol = $_POST['rol'];
-    $contraseña = $_POST['contraseña'];
+    $contrasena = $_POST['contrasena'];
     
     // Campos opcionales según el rol
     $turno = ($rol == 'operario') ? trim($_POST['turno']) : NULL;
     $departamento = ($rol == 'gerente') ? trim($_POST['departamento']) : NULL;
     
     // Validaciones básicas
-    if (empty($nombre) || empty($email) || empty($rol) || empty($contraseña)) {
+    if (empty($nombre) || empty($email) || empty($rol) || empty($contrasena)) {
         $response['message'] = 'Todos los campos obligatorios deben ser completados';
         echo json_encode($response);
         exit;
@@ -43,11 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         
         // Insertar nuevo usuario
-        $insert_sql = "INSERT INTO usuarios (nombre, email, telefono, rol, turno, departamento, contraseña) 
+        $insert_sql = "INSERT INTO usuarios (nombre, email, telefono, rol, turno, departamento, contrasena) 
                       VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param("ssssssi", $nombre, $email, $telefono, $rol, $turno, $departamento, $contraseña);
+        $insert_stmt->bind_param("ssssssi", $nombre, $email, $telefono, $rol, $turno, $departamento, $contrasena);
         
         if ($insert_stmt->execute()) {
             $response['success'] = true;
