@@ -21,8 +21,11 @@ if ($role === 'cliente') {
 
     if ($resultado->num_rows === 1) {
         $cliente = $resultado->fetch_assoc();
+        session_regenerate_id(true);
         $_SESSION['usuario'] = $cliente['nombre'];
         $_SESSION['rol'] = 'cliente';
+        $_SESSION['tipo'] = 'cliente';
+        $_SESSION['id'] = (int) $cliente['idCliente'];
         header("Location: ../panel_cliente.html");
         exit();
     } else {
@@ -46,8 +49,11 @@ else {
             exit();
         }
 
+        session_regenerate_id(true);
         $_SESSION['usuario'] = $usuario['nombre'];
         $_SESSION['rol'] = $usuario['rol'];
+        $_SESSION['tipo'] = 'usuario';
+        $_SESSION['id'] = (int) $usuario['idUsuario'];
 
         switch ($usuario['rol']) {
             case 'administrador':

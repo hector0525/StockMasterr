@@ -1,22 +1,22 @@
 {
-  "short_name": "StockMasterr",
+  "id": "/",
   "name": "StockMasterr - Control de Inventario",
-  "icons": [
-    {
-      "src": "/icons/icon-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
-    }
-  ],
-  "start_url": "/",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
+  "short_name": "StockMasterr",
+  "description": "Gestión de almacén: entradas, salidas, inventario y pedidos.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait"
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#dc3545",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Iniciar sesión", "url": "HTML/login.html", "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }] }
+  ]
 }

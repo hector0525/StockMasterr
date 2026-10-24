@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 include '../config/conexion.php';
+require_once '../includes/push.php';
 
 $response = array('success' => false, 'message' => '');
 
@@ -26,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($stmt->execute()) {
             $response['success'] = true;
             $response['message'] = 'Salida autorizada correctamente';
+            notificar_cliente_salida($conn, (int) $idSalida);
+            notificar_stock_bajo_salida($conn, (int) $idSalida);
         } else {
             $response['message'] = 'Error al autorizar la salida';
         }

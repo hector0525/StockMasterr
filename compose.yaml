@@ -10,6 +10,11 @@ services:
       DB_NAME: sistema_almacen
       DB_USER: stockmaster
       DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+      # Notificaciones push (generar con: docker compose run --rm web php tools/generar_vapid.php)
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@stockmaster.local}
+      STOCK_MINIMO: ${STOCK_MINIMO:-10}
     depends_on:
       db:
         condition: service_healthy

@@ -301,3 +301,23 @@ INSERT INTO reportes (tipo, fechaGeneracion, contenido, idUsuario) VALUES
 ('entrada', CURDATE(), 'Reporte de entradas de mercancía generadas', 3),
 ('salida', CURDATE(), 'Reporte de salidas de mercancía generadas', 3),
 ('inventario', CURDATE(), 'Reporte de inventario actualizado', 3);
+
+
+-- ========================================
+-- 11. NOTIFICACIONES PUSH (suscripciones de dispositivos)
+-- ========================================
+CREATE TABLE IF NOT EXISTS push_suscripciones (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tipo ENUM('usuario','cliente') NOT NULL,
+    idPersona INT NOT NULL,
+    rol VARCHAR(20) NOT NULL,
+    endpoint TEXT NOT NULL,
+    endpoint_hash CHAR(64) NOT NULL,
+    p256dh VARCHAR(255) NOT NULL,
+    auth VARCHAR(100) NOT NULL,
+    user_agent VARCHAR(255),
+    creado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_endpoint (endpoint_hash),
+    INDEX idx_persona (tipo, idPersona),
+    INDEX idx_rol (rol)
+) ENGINE=InnoDB;
