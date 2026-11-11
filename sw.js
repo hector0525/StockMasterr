@@ -1,7 +1,7 @@
 // StockMasterr - Service Worker
 // Sube VERSION cada vez que cambies archivos estáticos para renovar la caché.
 // (Los datos descargados y la cola de pendientes NO dependen de VERSION: se conservan al actualizar.)
-const VERSION = 'v6';
+const VERSION = 'v7';
 const STATIC_CACHE = `stockmasterr-static-${VERSION}`;
 const OFFLINE_URL = 'offline.html';
 

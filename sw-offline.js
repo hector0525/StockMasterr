@@ -234,7 +234,8 @@ async function estadoCola() {
     rechazadas: todas.filter((o) => o.estado === 'rechazada').map(ver),
     enviadas: (await metaGet('enviadas')) || [],
     sesion: await metaGet('sesion'),
-    usuario: await metaGet('usuario')
+    usuario: await metaGet('usuario'),
+    rol: await metaGet('rol')
   };
 }
 
@@ -247,6 +248,7 @@ async function atenderMensaje(m) {
       const previo = await metaGet('usuario');
       if (previo && previo !== m.clave) await caches.delete(DATOS_CACHE);   // otra cuenta: no se le muestran datos ajenos
       await metaSet('usuario', m.clave);
+      await metaSet('rol', m.rol || null);
       await metaSet('sesion', true);
       return estadoCola();
     }
@@ -254,6 +256,7 @@ async function atenderMensaje(m) {
     case 'purgar':                                   // cierre de sesión: se borran los datos descargados
       await caches.delete(DATOS_CACHE);
       await metaSet('usuario', null);
+      await metaSet('rol', null);
       await metaSet('sesion', false);
       return estadoCola();
     case 'descartar': await idbBorrar('cola', m.id); await avisarClientes({ tipo: 'cola-cambio' }); return estadoCola();
