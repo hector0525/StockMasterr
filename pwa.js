@@ -2,7 +2,7 @@
 // Se incluye en todas las páginas HTML.
 (() => {
   // Ruta base calculada desde la ubicación de este script (funciona en / y en /HTML/)
-  const base = document.currentScript ? new URL('.', document.currentScript.src).href : '/';
+  const base = new URL('/', location.origin).href;
   const API = base + 'HTML/php/push/';
 
   // ---------- Service Worker ----------
