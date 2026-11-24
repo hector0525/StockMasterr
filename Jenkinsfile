@@ -80,22 +80,25 @@ pipeline {
 
         stage('Desplegar y verificar') {
             steps {
-                sh 'docker compose up -d --build'
-                sh 'docker compose ps'
-                // Espera a que Apache responda (MySQL tarda unos segundos en arrancar).
-                sh '''
-                    for i in $(seq 1 30); do
-                      if curl -fsS -o /dev/null "${APP_URL}/"; then
-                        echo "La app responde en ${APP_URL}"
-                        break
-                      fi
-                      echo "Esperando a la app... intento $i/30"
-                      sleep 2
-                    done
-                    curl -fsS -o /dev/null "${APP_URL}/" || (docker compose logs web && exit 1)
-                '''
-                sh 'curl -fsS -o /dev/null "${APP_URL}/HTML/login.html"'
-                sh 'curl -fsS "${APP_URL}/" | head -c 300; echo'
+                // Credenciales desechables para la base de datos efímera de CI.
+                withEnv(['DB_PASSWORD=ci_stockmaster_password', 'MYSQL_ROOT_PASSWORD=ci_stockmaster_root_password']) {
+                    sh 'docker compose up -d --build'
+                    sh 'docker compose ps'
+                    // Espera a que Apache responda (MySQL tarda unos segundos en arrancar).
+                    sh '''
+                        for i in $(seq 1 30); do
+                          if curl -fsS -o /dev/null "${APP_URL}/"; then
+                            echo "La app responde en ${APP_URL}"
+                            break
+                          fi
+                          echo "Esperando a la app... intento $i/30"
+                          sleep 2
+                        done
+                        curl -fsS -o /dev/null "${APP_URL}/" || (docker compose logs web && exit 1)
+                    '''
+                    sh 'curl -fsS -o /dev/null "${APP_URL}/HTML/login.html"'
+                    sh 'curl -fsS "${APP_URL}/" | head -c 300; echo'
+                }
             }
         }
     }
