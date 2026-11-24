@@ -5,7 +5,9 @@
 //  2. REGISTROS: entradas, salidas y pedidos hechos sin red se guardan en una cola (IndexedDB) y se
 //     envían solos al volver la conexión. Cada uno lleva una clave única; el servidor la usa para no
 //     duplicarlo aunque el envío se repita (ver HTML/php/includes/idempotencia.php).
-//  3. Las demás acciones (autorizar, rechazar, crear usuarios...) necesitan servidor: sin red se avisa.
+//  3. Las demás acciones (login, push...) necesitan servidor: sin red se avisa.
+//     Crear producto/proveedor/usuario, cancelar pedidos y autorizar/rechazar
+//     entradas/salidas SÍ se encolan y se envían al volver la red.
 //
 // Los datos guardados pertenecen a la cuenta que los descargó: al cambiar de cuenta, o al cerrar sesión,
 // se borran. La cola de pendientes se conserva y solo se envía con la cuenta que la creó.
@@ -19,7 +21,10 @@ const ESPERA_RED_LECTURA = 6000;                 // si la red tarda más, se mue
 const MAX_EXTERNOS = 80;
 
 const RUTA_PHP = /\/HTML\/php\/(?:admin|gerente|operario|cliente)\/[A-Za-z_]+\.php$/;
-const RUTAS_COLA = /\/HTML\/php\/(?:operario\/registrar_entrada|operario\/registrar_salida|cliente\/nuevo_pedido)\.php$/;
+// Cola offline: TODAS las creaciones y decisiones, no solo entradas/salidas/pedidos.
+// Cada una tiene idempotencia en el servidor (idem_iniciar/idem_cerrar),
+// así que reenviarla al volver la red nunca la duplica.
+const RUTAS_COLA = /\/HTML\/php\/(?:operario\/registrar_entrada|operario\/registrar_salida|cliente\/nuevo_pedido|cliente\/cancelar_pedido|admin\/nuevo_producto|admin\/nuevo_proveedor|admin\/nuevo_usuario|gerente\/autorizar_entrada|gerente\/autorizar_salida|gerente\/rechazar_entrada|gerente\/rechazar_salida)\.php$/;
 const EXTERNOS = new Set(['cdn.jsdelivr.net', 'images.unsplash.com', 'm.media-amazon.com', 'fonts.googleapis.com', 'fonts.gstatic.com']);
 
 const MSG_REQUIERE_RED = 'Sin conexión. Esta acción necesita conexión con el servidor; inténtala cuando vuelva la red.';
@@ -138,9 +143,20 @@ async function serializarCuerpo(req) {
 }
 
 function resumenDe(ruta, d) {
-  if (/registrar_entrada/.test(ruta)) return 'Entrada ' + (d.campos.numeroFactura || '') + ' · ' + (d.campos.cantidad || '?') + ' u.';
-  if (/registrar_salida/.test(ruta)) return 'Salida ' + (d.campos.numeroPedido || '') + ' · ' + (d.campos.cantidad || '?') + ' u.';
-  const n = d.json && Array.isArray(d.json.items) ? d.json.items.length : '?';
+  const c = d.campos || {};
+  const j = d.json || {};
+  const v = (k) => c[k] || j[k] || '';
+  if (/registrar_entrada/.test(ruta)) return 'Entrada ' + v('numeroFactura') + ' · ' + (v('cantidad') || '?') + ' u.';
+  if (/registrar_salida/.test(ruta)) return 'Salida ' + v('numeroPedido') + ' · ' + (v('cantidad') || '?') + ' u.';
+  if (/nuevo_producto/.test(ruta)) return 'Producto ' + (v('nombre') || v('sku') || '') + ' · SKU ' + v('sku');
+  if (/nuevo_proveedor/.test(ruta)) return 'Proveedor ' + (v('nombre') || '');
+  if (/nuevo_usuario/.test(ruta)) return 'Usuario ' + (v('nombre') || v('email') || '');
+  if (/autorizar_entrada/.test(ruta)) return 'Autorizar entrada #' + v('idEntrada');
+  if (/autorizar_salida/.test(ruta)) return 'Autorizar salida #' + v('idSalida');
+  if (/rechazar_entrada/.test(ruta)) return 'Rechazar entrada #' + v('idEntrada');
+  if (/rechazar_salida/.test(ruta)) return 'Rechazar salida #' + v('idSalida');
+  if (/cancelar_pedido/.test(ruta)) return 'Cancelar pedido #' + v('idPedido');
+  const n = Array.isArray(j.items) ? j.items.length : '?';
   return 'Pedido de ' + n + ' producto(s)';
 }
 
@@ -234,8 +250,7 @@ async function estadoCola() {
     rechazadas: todas.filter((o) => o.estado === 'rechazada').map(ver),
     enviadas: (await metaGet('enviadas')) || [],
     sesion: await metaGet('sesion'),
-    usuario: await metaGet('usuario'),
-    rol: await metaGet('rol')
+    usuario: await metaGet('usuario')
   };
 }
 
@@ -248,7 +263,6 @@ async function atenderMensaje(m) {
       const previo = await metaGet('usuario');
       if (previo && previo !== m.clave) await caches.delete(DATOS_CACHE);   // otra cuenta: no se le muestran datos ajenos
       await metaSet('usuario', m.clave);
-      await metaSet('rol', m.rol || null);
       await metaSet('sesion', true);
       return estadoCola();
     }
@@ -256,7 +270,6 @@ async function atenderMensaje(m) {
     case 'purgar':                                   // cierre de sesión: se borran los datos descargados
       await caches.delete(DATOS_CACHE);
       await metaSet('usuario', null);
-      await metaSet('rol', null);
       await metaSet('sesion', false);
       return estadoCola();
     case 'descartar': await idbBorrar('cola', m.id); await avisarClientes({ tipo: 'cola-cambio' }); return estadoCola();

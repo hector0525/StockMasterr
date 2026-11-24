@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Login - Sistema de Almacén</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#dc3545">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png">
+  <link rel="apple-touch-icon" href="../pwa-icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../pwa-icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="../pwa-icons/favicon-48x48.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="css/login.css" />
@@ -75,6 +75,16 @@
   const params = new URLSearchParams(window.location.search);
   const error = params.get('error');
 
+  // Sin conexión al intentar entrar: el service worker redirige aquí con ?offline=1.
+  // No se puede iniciar sesión sin red porque la sesión vive en el servidor (PHP/MySQL).
+  if (params.get('offline') === '1') {
+    const aviso = document.getElementById('mensaje-error');
+    if (aviso) {
+      aviso.style.display = 'block';
+      aviso.textContent = 'Sin conexión: no se puede iniciar sesión sin internet. Conéctate, entra una vez y luego podrás consultar los datos guardados sin red.';
+    }
+  }
+
   if (error === 'credenciales_invalidas') {
     Swal.fire({
       icon: 'error',
@@ -100,6 +110,27 @@
   }
 </script>
 
-  <script src="/pwa.js" defer></script>
+<script>
+  // "Continuar sin conexión": solo si YA iniciaste sesión antes en este
+  // dispositivo y la sesión sigue vigente (8 h). El login con contraseña
+  // siempre necesita servidor, porque la contraseña se verifica en MySQL.
+  (function () {
+    if (new URLSearchParams(location.search).get('offline') !== '1' && navigator.onLine) return;
+    let ses = null;
+    try { ses = JSON.parse(localStorage.getItem('sm-ultima-sesion') || 'null'); } catch (_) {}
+    if (!ses || !ses.rol) return;
+    const paneles = { administrador: 'panel_admin.html', gerente: 'panel_gerente.html', operario: 'panel_operario.html', cliente: 'panel_cliente.html' };
+    const destino = paneles[ses.rol];
+    if (!destino) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = 'Continuar sin conexión (' + ses.rol + ')';
+    b.style.cssText = 'display:block;width:100%;margin-top:12px;padding:.8rem;border:0;border-radius:8px;background:#212529;color:#fff;font-weight:700;cursor:pointer';
+    b.onclick = () => { location.href = destino; };
+    const form = document.querySelector('form.login-form');
+    if (form) form.after(b);
+  })();
+</script>
+  <script src="../pwa.js" defer></script>
 </body>
 </html>

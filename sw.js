@@ -3,58 +3,53 @@
 // (Los datos descargados y la cola de pendientes NO dependen de VERSION: se conservan al actualizar.)
 const VERSION = 'v9';
 const STATIC_CACHE = `stockmasterr-static-${VERSION}`;
-const OFFLINE_URL = '/offline.html';
+const OFFLINE_URL = 'offline.html';
 
 importScripts('sw-offline.js');   // datos sin conexión, cola de registros y sincronización
 
 const PRECACHE = [
-  '/',
-  '/index.html',
+  './',
+  'index.html',
   OFFLINE_URL,
-  '/manifest.json',
-  '/scrip.js',
-  '/pwa.js',
-  '/CSS/styles.css',
+  'manifest.json',
+  'scrip.js',
+  'pwa.js',
+  'CSS/styles.css',
   // pantallas: todas, para poder abrirlas sin conexión aunque no se hayan visitado antes
-  '/HTML/login.html',
-  '/HTML/panel_admin.html',
-  '/HTML/panel_gerente.html',
-  '/HTML/panel_operario.html',
-  '/HTML/panel_cliente.html',
-  '/HTML/inventario.html',
-  '/HTML/pedidos.html',
-  '/HTML/productos.html',
-  '/HTML/css/login.css',
-  '/HTML/css/panel_admin.css',
-  '/HTML/css/inventario.css',
-  '/HTML/css/pedidos.css',
-  '/HTML/css/productos.css',
-  '/HTML/img/f1.jpg',
-  '/HTML/img/f2.jpeg',
-  '/HTML/img/f3.jpg',
-  '/HTML/img/f4.avif',
-  '/HTML/img/icons/admin.svg',
-  '/HTML/img/icons/home.png',
-  '../icons/icon-192x192.png',
-  '../icons/icon-512x512.png',
-  '../icons/icon-maskable-512x512.png',
-  '../icons/apple-touch-icon.png',
-  '../icons/badge-72x72.png',
-  '../icons/favicon-32x32.png',
-  '../icons/favicon-48x48.png'
+  'HTML/login.html',
+  'HTML/panel_admin.html',
+  'HTML/panel_gerente.html',
+  'HTML/panel_operario.html',
+  'HTML/panel_cliente.html',
+  'HTML/inventario.html',
+  'HTML/pedidos.html',
+  'HTML/productos.html',
+  'HTML/css/login.css',
+  'HTML/css/panel_admin.css',
+  'HTML/css/inventario.css',
+  'HTML/css/pedidos.css',
+  'HTML/css/productos.css',
+  'HTML/img/f1.jpg',
+  'HTML/img/f2.jpeg',
+  'HTML/img/f3.jpg',
+  'HTML/img/f4.avif',
+  'HTML/img/icons/admin.svg',
+  'HTML/img/icons/home.png',
+  'pwa-icons/icon-192x192.png',
+  'pwa-icons/icon-512x512.png',
+  'pwa-icons/icon-maskable-512x512.png',
+  'pwa-icons/apple-touch-icon.png',
+  'pwa-icons/badge-72x72.png',
+  'pwa-icons/favicon-32x32.png',
+  'pwa-icons/favicon-48x48.png'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then(async (cache) => {
-      const results = await Promise.allSettled(PRECACHE.map((url) => cache.add(url)));
-      const errores = results.flatMap((result, i) => result.status === 'rejected' ? [PRECACHE[i]] : []);
-      if (errores.length) {
-        console.error('[StockMasterr PWA] No se pudieron guardar estos recursos:', errores);
-        await caches.delete(STATIC_CACHE);
-        throw new Error('Falló la precarga de ' + errores.length + ' recurso(s) de la PWA.');
-      }
-    }).then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE).then((cache) =>
+      // allSettled: un archivo faltante no debe tumbar toda la instalación
+      Promise.allSettled(PRECACHE.map((url) => cache.add(url)))
+    ).then(() => self.skipWaiting())
   );
 });
 
@@ -87,6 +82,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Login por formulario (POST de navegación): sin red vuelve al login con
+  // ?offline=1 en vez del error genérico del navegador.
+  // Tiene que ir ANTES del return de no-GET, si no nunca se ejecuta.
+  if (req.method === 'POST' && req.mode === 'navigate' && url.pathname.endsWith('/php/procesar_login.php')) {
+    event.respondWith(fetch(req).catch(() => Response.redirect(new URL('HTML/login.html?offline=1', self.registration.scope).href, 303)));
+    return;
+  }
+
   if (req.method !== 'GET') return;                 // POST (login, formularios) siempre a red
 
   // Cerrar sesión sin conexión: se vuelve al inicio de sesión (la sesión del servidor caduca sola)
@@ -98,6 +101,13 @@ self.addEventListener('fetch', (event) => {
   // Datos de las pantallas: red primero y, si no hay, la última copia guardada
   if (RUTA_PHP.test(url.pathname)) {
     event.respondWith(leerConCopia(event));
+    return;
+  }
+
+  // sesion_info: sin red responde 401 JSON, para que pwa.js no se quede esperando
+  // y sepa que está sin conexión en vez de fallar con error de red.
+  if (url.pathname.endsWith('/php/sesion_info.php')) {
+    event.respondWith(fetch(req).catch(() => respuestaJSON(401, { success: false, sesion: false, offline: true })));
     return;
   }
 
@@ -114,7 +124,7 @@ self.addEventListener('fetch', (event) => {
           }
           return res;
         })
-        .catch(async () => (await caches.match(req, { ignoreSearch: true })) || caches.match(OFFLINE_URL))
+        .catch(async () => (await caches.match(req, { ignoreSearch: true })) || (await caches.match('index.html')) || (await caches.match('./')) || caches.match(OFFLINE_URL))
     );
     return;
   }
@@ -165,8 +175,8 @@ self.addEventListener('push', (event) => {
 
   const opciones = {
     body: d.body || '',
-    icon: d.icon || '/icons/icon-192x192.png',
-    badge: d.badge || '/icons/badge-72x72.png',
+    icon: d.icon || 'pwa-icons/icon-192x192.png',
+    badge: d.badge || 'pwa-icons/badge-72x72.png',
     lang: 'es',
     data: { url: d.url || './' }
   };

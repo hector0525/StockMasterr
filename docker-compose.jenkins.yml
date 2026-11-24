@@ -1,0 +1,31 @@
+# Jenkins local para la práctica (Fase 3).
+# Levanta solo Jenkins, sin tocar la app (que usa su propio compose.yaml).
+#
+#   docker compose -f docker-compose.jenkins.yml up -d
+#   docker compose -f docker-compose.jenkins.yml logs -f jenkins
+#
+# - La primera vez Jenkins pide la contraseña inicial: aparece en los logs
+#   o en /var/jenkins_home/secrets/initialAdminPassword dentro del contenedor.
+# - Se abre en http://localhost:8081 (el 8080 ya lo usa la app).
+# - Monta /var/run/docker.sock para que Jenkins pueda ejecutar `docker build`
+#   y `docker compose` del Jenkinsfile. Es la forma habitual en una práctica
+#   local; `user: root` se usa solo para eso y NO es para producción.
+# - La imagen de Jenkins NO trae el cliente de Docker: hay que instalarlo
+#   una vez dentro del contenedor (ver README.md, Fase 3, paso 2).
+# - Los datos de Jenkins quedan en el volumen jenkins_home.
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: stockmaster_jenkins
+    user: root
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:

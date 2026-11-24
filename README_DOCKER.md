@@ -53,17 +53,10 @@ Avisos que llegan al dispositivo aunque la app esté cerrada:
 - La tabla `push_suscripciones` se crea sola; no hace falta recrear el volumen de MySQL.
 
 ## Funcionamiento sin conexión
-### Instalación en móvil
-- Publica la aplicación en un dominio con **HTTPS**. Para pruebas en el mismo equipo funciona `http://localhost:8080`; abrir una dirección HTTP desde otro teléfono no permite instalar una PWA.
-- Abre la dirección en Chrome para Android o Safari en iPhone/iPad mientras tienes conexión. Inicia sesión y deja que cargue el panel para almacenar la app y sus datos.
-- Android: usa **Instalar app** en el navegador o el botón de la aplicación. iPhone/iPad: Safari → **Compartir** → **Agregar a pantalla de inicio**; abre luego StockMasterr desde su ícono.
-- Si abres la app sin conexión en el mismo dispositivo y ya habías iniciado sesión, la pantalla inicial ofrece **Continuar sin conexión** para volver al panel previamente usado.
-
-### Alcance offline
-La app sigue siendo útil cuando se cae la red o el servidor, dentro de los límites siguientes:
+La app sigue siendo útil cuando se cae la red o el servidor:
 - **Consultar:** las pantallas y los datos que ya se descargaron con conexión se pueden ver sin ella. Al abrir un panel con conexión, la app descarga en segundo plano las consultas de ese rol. Se muestra "Sin conexión · datos guardados de las HH:MM". Las copias se descartan a las 24 h.
-- **Registrar:** las **entradas y salidas del operario** y los **pedidos del cliente** hechos sin conexión quedan guardados en el dispositivo y se envían solos al volver la red (o con el botón "Enviar ahora"). Cada registro lleva una clave única, así que aunque el envío se repita nunca se duplica. Con "Ver" se consulta la lista; un registro que el servidor rechace (por ejemplo, sin stock suficiente) aparece con su motivo para descartarlo.
-- **No se puede sin conexión:** iniciar sesión, autorizar o rechazar movimientos, crear usuarios, productos o proveedores, cancelar pedidos. La app lo indica con un mensaje.
+- **Registrar:** las **entradas y salidas del operario**, los **pedidos del cliente**, los **productos, proveedores y usuarios nuevos**, la **cancelación de pedidos** y **autorizar o rechazar** entradas y salidas hechos sin conexión quedan guardados en el dispositivo y se envían solos al volver la red (o con el botón "Enviar ahora"). Cada registro lleva una clave única, así que aunque el envío se repita nunca se duplica. Con "Ver" se consulta la lista; un registro que el servidor rechace (por ejemplo, sin stock suficiente) aparece con su motivo para descartarlo.
+- **No se puede sin conexión:** iniciar sesión (la contraseña se verifica en MySQL). Si ya iniciaste sesión en ese dispositivo, el login muestra un botón "Continuar sin conexión" para ir directo a tu panel. La app lo indica con un mensaje.
 
 ### Cosas que conviene saber
 - La primera vez hay que abrir cada panel **con conexión** (iniciar sesión y dejar que cargue). Sin eso no hay nada guardado.

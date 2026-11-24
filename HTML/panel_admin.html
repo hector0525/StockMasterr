@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Panel Admin - Sistema</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="../manifest.json">
   <meta name="theme-color" content="#dc3545">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png">
+  <link rel="apple-touch-icon" href="../pwa-icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../pwa-icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="../pwa-icons/favicon-48x48.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="../HTML/css/panel_admin.css">
@@ -275,9 +275,9 @@
   // === CARRUSEL SUAVE SIN PARPADEOS ===
   const imagenes = [
     'img/f1.jpg',
-    'img/f2.jpg',
+    'img/f2.jpeg',
     'img/f3.jpg',
-    'img/f4.jpg'
+    'img/f4.avif'
   ]; // pon aquí tus rutas
 
   let index = 0;
@@ -781,7 +781,7 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert('Usuario agregado correctamente');
+            alert(data.queued ? data.message : 'Usuario agregado correctamente');
             formNuevoUsuario.reset();
             modalNuevoUsuario.style.display = 'none';
           } else {
@@ -804,11 +804,11 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert('Proveedor agregado correctamente');
+            alert(data.queued ? data.message : 'Proveedor agregado correctamente');
             formNuevoProveedor.reset();
             modalNuevoProveedor.style.display = 'none';
             // Recargar la lista de proveedores si está abierta
-            if (modalProveedores.style.display === 'block') {
+            if (!data.queued && modalProveedores.style.display === 'block') {
               cargarProveedores();
             }
           } else {
@@ -831,11 +831,11 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            alert('Producto agregado correctamente');
+            alert(data.queued ? data.message : 'Producto agregado correctamente');
             formNuevoProducto.reset();
             modalNuevoProducto.style.display = 'none';
             // Recargar la lista de productos si está abierta
-            if (modalProductos.style.display === 'block') {
+            if (!data.queued && modalProductos.style.display === 'block') {
               cargarProductos();
             }
           } else {
@@ -846,17 +846,24 @@
       });
 
       // Cargar datos del panel
-      fetch("php/panel_admin_data.php")
+      fetch("php/admin/panel_admin.php")
       .then(res => res.json())
       .then(data => {
-        document.querySelectorAll(".stat")[0].querySelector(".num").textContent = data.totales.productos;
-        document.querySelectorAll(".stat")[1].querySelector(".num").textContent = data.totales.pedidos;
-        document.querySelectorAll(".stat")[2].querySelector(".num").textContent = data.totales.entradas;
-        document.querySelectorAll(".stat")[3].querySelector(".num").textContent = data.totales.alertas;
+        // Sin red y sin copia guardada el SW responde {success:false, offline:true}
+        // sin "totales": antes esto rompía el panel con TypeError.
+        if (!data || !data.totales) return;
+        // Las tarjetas .stat de esta página son el menú y no tienen .num,
+        // y tampoco existe la tabla .recent: si no hay dónde pintar, no se rompe.
+        const stats = document.querySelectorAll(".stat");
+        [data.totales.productos, data.totales.pedidos, data.totales.entradas, data.totales.alertas].forEach((v, i) => {
+          const n = stats[i] && stats[i].querySelector(".num");
+          if (n) n.textContent = v;
+        });
 
         const tbody = document.querySelector(".recent tbody");
+        if (!tbody) return;
         tbody.innerHTML = "";
-        data.actividades.forEach(a => {
+        (data.actividades || []).forEach(a => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${a.fecha}</td>
@@ -1164,6 +1171,6 @@
     }
   </script>
 
-  <script src="/pwa.js" defer></script>
+  <script src="../pwa.js" defer></script>
 </body>
 </html>

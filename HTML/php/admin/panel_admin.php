@@ -1,6 +1,6 @@
 <?php
 header('Content-Type: application/json');
-include 'config/conexion.php';
+include '../config/conexion.php';
 
 $response = array(
     'totales' => array(),

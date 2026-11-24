@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 include '../config/conexion.php';
+require_once '../includes/idempotencia.php';
+idem_iniciar($conn);
 
 $response = array('success' => false, 'message' => '');
 
@@ -47,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                       VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         $insert_stmt = $conn->prepare($insert_sql);
-        $insert_stmt->bind_param("ssssssi", $nombre, $email, $telefono, $rol, $turno, $departamento, $contrasena);
+        $insert_stmt->bind_param("sssssss", $nombre, $email, $telefono, $rol, $turno, $departamento, $contrasena);
         
         if ($insert_stmt->execute()) {
             $response['success'] = true;
@@ -65,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $response['message'] = 'Método no permitido';
 }
 
+idem_cerrar($conn, $response);
 echo json_encode($response);
 $conn->close();
 ?>

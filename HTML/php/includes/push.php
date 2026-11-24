@@ -103,7 +103,7 @@ function push_enviar(mysqli $conn, array $filtro, array $payload, ?array &$detal
         $st->close();
         $detalle['suscripciones'] = count($subs);
 
-        $payload += ['icon' => 'icons/icon-192x192.png', 'badge' => 'icons/badge-72x72.png'];
+        $payload += ['icon' => 'pwa-icons/icon-192x192.png', 'badge' => 'pwa-icons/badge-72x72.png'];
         $ok = 0;
         foreach ($subs as $s) {
             $r = wp_enviar($s, $payload, $cfg);

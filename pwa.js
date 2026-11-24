@@ -2,7 +2,14 @@
 // Se incluye en todas las páginas HTML.
 (() => {
   // Ruta base calculada desde la ubicación de este script (funciona en / y en /HTML/)
-  const base = new URL('/', location.origin).href;
+  // Base de la app: document.currentScript es null con defer en algunos
+  // navegadores, así que se busca el <script src="pwa.js"> y, si no hay,
+  // se deduce de la URL de la página (las pantallas viven en /HTML/).
+  const scriptEl = document.currentScript || document.querySelector('script[src*="pwa.js"]');
+  let base;
+  if (scriptEl && scriptEl.src) base = new URL('.', scriptEl.src).href;
+  else if (location.pathname.includes('/HTML/')) base = new URL('../', location.href).href;
+  else base = new URL('./', location.href).href;
   const API = base + 'HTML/php/push/';
 
   // ---------- Service Worker ----------
@@ -28,23 +35,6 @@
     document.body.appendChild(b);
   });
   window.addEventListener('appinstalled', () => document.getElementById('pwa-install')?.remove());
-
-  // iOS no dispara beforeinstallprompt: muestra las instrucciones del menú Compartir.
-  const esIOSParaInstalar = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const appInstalada = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  if (esIOSParaInstalar && !appInstalada) {
-    window.addEventListener('load', () => {
-      if (document.getElementById('pwa-install')) return;
-      const b = document.createElement('button');
-      b.id = 'pwa-install';
-      b.type = 'button';
-      b.textContent = 'Cómo instalar';
-      b.setAttribute('aria-label', 'Instrucciones para instalar StockMasterr en la pantalla de inicio');
-      b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:9999;padding:.75rem 1.1rem;min-height:48px;border:0;border-radius:50px;background:#dc3545;color:#fff;font:700 .95rem system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;touch-action:manipulation';
-      b.onclick = () => alert('En Safari, toca Compartir y selecciona “Agregar a pantalla de inicio”. Después abre StockMasterr desde el ícono para usarla como app.');
-      document.body.appendChild(b);
-    });
-  }
 
   // ---------- Notificaciones push ----------
   const esPanel = /panel_(admin|gerente|operario|cliente)\.html$/.test(location.pathname);
@@ -143,51 +133,6 @@
       canal.port1.onmessage = (e) => { clearTimeout(t); ok(e.data); };
       w.postMessage(mensaje, [canal.port2]);
     }));
-  }
-
-  // Permite volver al panel previamente usado cuando la app se abre sin red.
-  // Solo se ofrece el panel cuyo rol quedó asociado localmente tras un login real.
-  const panelPorRol = {
-    administrador: 'panel_admin.html',
-    gerente: 'panel_gerente.html',
-    operario: 'panel_operario.html',
-    cliente: 'panel_cliente.html'
-  };
-  const esPantallaEntrada = /(?:^|\/)(?:index|login)\.html$|\/$/.test(location.pathname);
-  let accesoOfflineMostrado = false;
-
-  async function ofrecerAccesoOffline() {
-    if (!esPantallaEntrada || accesoOfflineMostrado) return;
-    let servidorFueraDeLinea = !navigator.onLine;
-    if (!servidorFueraDeLinea) {
-      const ctl = new AbortController();
-      const limite = setTimeout(() => ctl.abort(), 2500);
-      try {
-        const respuesta = await fetch(base + 'HTML/php/sesion_info.php', { credentials: 'same-origin', cache: 'no-store', signal: ctl.signal });
-        if (respuesta.status !== 401) { clearTimeout(limite); return; }
-      } catch (_) { servidorFueraDeLinea = true; }
-      finally { clearTimeout(limite); }
-    }
-    if (!servidorFueraDeLinea) return;
-    const estado = await aSW({ tipo: 'estado' });
-    const panel = estado && panelPorRol[estado.rol];
-    if (!panel || !estado.usuario) return;
-    accesoOfflineMostrado = true;
-    const enlace = document.createElement('a');
-    enlace.href = base + 'HTML/' + panel;
-    enlace.textContent = 'Continuar sin conexión';
-    enlace.setAttribute('aria-label', 'Abrir el panel guardado para continuar sin conexión');
-    enlace.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;margin:1rem auto;padding:.85rem 1.2rem;min-height:48px;border-radius:12px;background:#212529;color:#fff;font:700 1rem system-ui,sans-serif;text-decoration:none;touch-action:manipulation';
-    const nota = document.createElement('p');
-    nota.textContent = 'Disponible después de iniciar sesión con conexión en este dispositivo. Se mostrarán los datos guardados y las operaciones compatibles quedarán pendientes de sincronizar.';
-    nota.style.cssText = 'max-width:34rem;margin:.5rem auto;padding:0 1rem;color:inherit;font:500 .9rem/1.5 system-ui,sans-serif;text-align:center';
-    const host = document.querySelector('.cta-container, .login-container, main') || document.body;
-    host.append(enlace, nota);
-  }
-
-  if (esPantallaEntrada) {
-    window.addEventListener('offline', ofrecerAccesoOffline);
-    window.addEventListener('load', ofrecerAccesoOffline);
   }
 
   const Offline = {
@@ -313,13 +258,18 @@
     const lista = PRECARGA[rol];
     if (!lista) return;
     // No se repite si se hizo hace menos de 5 min para ESTA cuenta y los datos siguen guardados.
-    let guardados = 0;
-    try { guardados = (await (await caches.open('stockmasterr-datos')).keys()).length; } catch (_) { /* sin Cache API */ }
     try {
       const t = Number(sessionStorage.getItem('sm-precarga-' + clave) || 0);
-      if (Date.now() - t < 5 * 60 * 1000 && guardados >= lista.length) return;
+      if (Date.now() - t < 5 * 60 * 1000) {
+        // Antes se contaban TODAS las claves del caché y se saltaba la precarga
+        // aunque fueran de otro rol. Ahora se comprueba URL por URL.
+        const cache = await caches.open('stockmasterr-datos');
+        const urls = new Set((await cache.keys()).map((r) => r.url));
+        const faltan = lista.filter((ruta) => ![...urls].some((u) => u.endsWith('/HTML/php/' + ruta + '.php')));
+        if (!faltan.length) return;
+      }
       sessionStorage.setItem('sm-precarga-' + clave, String(Date.now()));
-    } catch (_) { /* sin sessionStorage */ }
+    } catch (_) { /* sin sessionStorage / Cache API */ }
     for (const ruta of lista) {
       try { await fetch(base + 'HTML/php/' + ruta + '.php', { credentials: 'same-origin' }); } catch (_) { return; }
     }
@@ -330,8 +280,14 @@
     try {
       const r = await fetch(base + 'HTML/php/sesion_info.php', { credentials: 'same-origin', cache: 'no-store' });
       Offline.sinRed = false;
-      if (r.status === 401) await aSW({ tipo: 'sesion', valor: false });
-      else if (r.ok) { ses = await r.json(); await aSW({ tipo: 'usuario', clave: ses.tipo + ':' + ses.id, rol: ses.rol }); }
+      if (r.status === 401) { await aSW({ tipo: 'sesion', valor: false }); try { localStorage.removeItem('sm-ultima-sesion'); } catch (_) {} }
+      else if (r.ok) {
+        ses = await r.json();
+        await aSW({ tipo: 'usuario', clave: ses.tipo + ':' + ses.id, rol: ses.rol });
+        // Para poder "continuar sin conexión" si se cierra y se reabre la app
+        // (el login en sí siempre necesita servidor, la contraseña vive en MySQL).
+        try { localStorage.setItem('sm-ultima-sesion', JSON.stringify({ rol: ses.rol, tipo: ses.tipo, id: ses.id, ts: Date.now() })); } catch (_) {}
+      }
     } catch (_) { Offline.sinRed = true; vigilarRed(); }
     await Offline.refrescar();
     if (ses) {
@@ -366,6 +322,7 @@
       const a = e.target.closest && e.target.closest('a.logout');
       if (!a) return;
       e.preventDefault();
+      try { localStorage.removeItem('sm-ultima-sesion'); } catch (_) {}
       const pend = (Offline.estado && Offline.estado.pendientes.length) || 0;
       if (pend > 0 && !confirm('Hay ' + pend + ' registro(s) sin enviar. Se conservan en este dispositivo y se enviarán cuando esta misma cuenta inicie sesión con conexión.\n\n¿Cerrar sesión de todos modos?')) return;
       const tareas = [Offline.purgar()];

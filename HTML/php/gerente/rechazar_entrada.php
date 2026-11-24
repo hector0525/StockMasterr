@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json');
 include '../config/conexion.php';
+require_once '../includes/idempotencia.php';
+idem_iniciar($conn);
 
 $response = array('success' => false, 'message' => '');
 
@@ -40,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $response['message'] = 'Método no permitido';
 }
 
+idem_cerrar($conn, $response);
 echo json_encode($response);
 $conn->close();
 ?>
