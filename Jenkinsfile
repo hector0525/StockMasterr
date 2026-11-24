@@ -23,7 +23,8 @@ pipeline {
     agent any
 
     options {
-        timeout(time: 20, unit: 'MINUTES')
+        // Las primeras ejecuciones descargan imágenes base de PHP y Node.
+        timeout(time: 45, unit: 'MINUTES')
         timestamps()
     }
 
