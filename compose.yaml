@@ -1,7 +1,6 @@
 services:
   web:
     build: .
-    container_name: stockmaster_web
     ports:
       - "8080:80"
     environment:
@@ -22,7 +21,6 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: stockmaster_db
     environment:
       MYSQL_DATABASE: sistema_almacen
       MYSQL_USER: stockmaster

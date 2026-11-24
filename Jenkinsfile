@@ -7,7 +7,8 @@
 //   3. Verificar JavaScript: revisa pwa.js, sw.js, sw-offline.js y scrip.js con `node --check`.
 //   4. Construir imagen Docker: `docker build` con el Dockerfile del proyecto.
 //   5. Desplegar y verificar: levanta la app con `docker compose up -d --build`
-//      (web + MySQL) y comprueba con curl que responde http://localhost:8080/
+//      (web + MySQL) y comprueba con curl que responde en el host Docker
+//      (http://host.docker.internal:8080/)
 //      y la página de login. Si alguna etapa falla, el pipeline se marca en rojo
 //      y no llega al despliegue.
 //
@@ -28,9 +29,10 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'stockmasterr'
-        APP_URL = 'http://localhost:8080'
-        // Nombre de proyecto propio para no chocar con un `docker compose up`
-        // manual del mismo equipo; la base de datos de la prueba es desechable.
+        // Jenkins corre en contenedor; localhost sería el propio Jenkins.
+        APP_URL = 'http://host.docker.internal:8080'
+        // Nombre y volúmenes propios para aislar este despliegue de los
+        // contenedores iniciados manualmente por el equipo.
         COMPOSE_PROJECT_NAME = "stockmasterr-ci-${env.BUILD_NUMBER}"
     }
 
@@ -45,8 +47,13 @@ pipeline {
         stage('Verificar sintaxis PHP') {
             steps {
                 sh '''
-                    docker run --rm -v "$WORKSPACE":/app -w /app php:8.3-cli \
-                      sh -c "find . -name '*.php' -print0 | xargs -0 -n1 php -l"
+                    # El daemon Docker no comparte la ruta interna del workspace
+                    # cuando Jenkins se ejecuta en un contenedor.
+                    ARCHIVE="/tmp/stockmaster-$BUILD_NUMBER.tar"
+                    trap 'rm -f "$ARCHIVE"' EXIT
+                    tar --exclude=.git -C "$WORKSPACE" -cf "$ARCHIVE" .
+                    docker run --rm -i php:8.3-cli \
+                      sh -c 'mkdir -p /app && tar -xf - -C /app && cd /app && find . -name "*.php" -print0 | xargs -0 -r -n1 php -l' < "$ARCHIVE"
                 '''
             }
         }
@@ -54,8 +61,11 @@ pipeline {
         stage('Verificar JavaScript') {
             steps {
                 sh '''
-                    docker run --rm -v "$WORKSPACE":/app -w /app node:20-alpine \
-                      sh -c "node --check pwa.js && node --check sw.js && node --check sw-offline.js && node --check scrip.js"
+                    ARCHIVE="/tmp/stockmaster-$BUILD_NUMBER.tar"
+                    trap 'rm -f "$ARCHIVE"' EXIT
+                    tar --exclude=.git -C "$WORKSPACE" -cf "$ARCHIVE" .
+                    docker run --rm -i node:20-alpine \
+                      sh -c 'mkdir -p /app && tar -xf - -C /app && cd /app && node --check pwa.js && node --check sw.js && node --check sw-offline.js && node --check scrip.js' < "$ARCHIVE"
                 '''
             }
         }

@@ -1,191 +1,112 @@
-# StockMaster
-Nombre y descripción del proyecto
-StockMaster
-El objetivo general del proyecto es desarrollar e implementar un sistema de
-información web integral, denominado "STOCKMASTER", diseñado para
-modernizar y automatizar la gestión de inventarios de un almacén. 
-Integrantes:
-BERMUDEZ TAPIA HECTOR ANTONIO
-NAVARRO DE LA CRUZ JONATHAN
-PATRICIO
-SANCHEZ ROMERO CHRISTIAN
-VILCHIS EZPINOZA ALFREDO
-GONZALEZ HERNANDEZ JORGE URIEL 
-Tecnologías utilizadas:
-HTML, CSS, PHP, SQL, JAVA SCRIPT
-Arquitectura y microservicios
-INICIO (login.php)
-│
-├── [Administrador] panel_admin.php
-│   ├── usuarios.php
-│   │   ├── nuevo_usuario.php
-│   │   └── editar_usuario.php
-│   ├── proveedores.php
-│   │   └── nuevo_proveedor.php
-│   ├── productos.php
-│   │   └── nuevo_producto.php
-│   ├── inventario.php
-│   │   └── detalle_inventario.php
-│   ├── reportes.php
-│   │   ├── reporte_entradas.php
-│   │   ├── reporte_salidas.php
-│   │   └── reporte_inventario.php
-│   └── configuración (cambiar_contraseña.php, logout.php)
-│
-├── [Operario de almacén] panel_operario.php
-│   ├── entrada_mercancia.php
-│   ├── salida_mercancia.php
-│   ├── verificar_mercancia.php
-│   └── detalle_entrada.php / detalle_salida.php
-│
-├── [Gerente de almacén] panel_gerente.php
-│   ├── autorizar_entrada.php
-│   ├── autorizar_salida.php
-│   ├── supervisar_inventario.php
-│   └── reportes.php
-│
-└── [Cliente] panel_cliente.php
-    ├── perfil_cliente.php
-    ├── pedidos.php
-    │   ├── nuevo_pedido.php
-    │   └── detalle_pedido.php
-    └── logout.php
+# StockMasterr
 
----
+StockMasterr es un sistema web para administrar el inventario de un almacén. Permite trabajar con productos, proveedores, usuarios, movimientos de mercancía y pedidos desde cuatro roles: administrador, operario, gerente y cliente. El proyecto integra la aplicación desarrollada en los parciales anteriores con Docker, GitHub Actions y un pipeline preparado para Jenkins.
 
-# Práctica integradora DevOps: GitHub, Docker y Jenkins
+## Tecnologías
 
-Asignatura: Gestión de Desarrollo de Software. La aplicación de esta
-práctica es StockMasterr (este repositorio, ya concluida en el primer y
-segundo parcial).
+- Interfaz: HTML, CSS y JavaScript.
+- Servidor: PHP 8.3 con Apache.
+- Base de datos: MySQL 8.0.
+- Aplicación web progresiva: manifiesto, service workers, caché de pantallas y sincronización de operaciones pendientes.
+- Entrega: Docker Compose, GitHub Actions y Jenkins.
 
-## Flujo DevOps
+La aplicación permite consultar datos que ya se cargaron cuando se pierde la conexión y poner algunas operaciones en cola para sincronizarlas al volver la red. El inicio de sesión requiere conexión con el servidor. Las notificaciones push se pueden configurar con claves VAPID; los pasos están en [README_DOCKER.md](README_DOCKER.md).
 
-```
-GitHub (código fuente) ──push / webhook──> Jenkins (Pipeline)
-                                              │
-                                              ├─ Verifica sintaxis PHP y JavaScript
-                                              ├─ Construye la imagen Docker
-                                              └─ Despliega con Docker Compose y verifica
-                                                        │
-                                                        ▼
-                                              App en http://localhost:8080
-                                              (web PHP/Apache + MySQL)
+## Estructura del proyecto
+
+```text
+.
+├── HTML/                  Páginas, estilos y módulos PHP por rol
+│   └── php/               Login, sesiones, conexión, administración,
+│                          operación, gerencia, cliente y notificaciones
+├── CSS/                   Estilos compartidos
+├── docker/                Configuración de PHP para Docker
+├── tools/                 Herramientas auxiliares
+├── .github/workflows/     Integración continua con GitHub Actions
+├── Dockerfile             Imagen PHP y Apache
+├── compose.yaml           Aplicación web y MySQL
+├── Jenkinsfile            Pipeline de Jenkins
+└── docker-compose.jenkins.yml
+                           Jenkins local
 ```
 
-## Fase 1. GitHub
+## Ejecutar la aplicación
 
-- Repositorio público: **Practica-DevOps-GitHub-Docker-Jenkins**.
-- El código de este proyecto es la aplicación desarrollada en los
-  parciales anteriores. Se sube el contenido de esta carpeta.
-- Hacer al menos tres commits que evidencien los avances (por ejemplo:
-  1) código base de la app, 2) Dockerfile y Docker Compose,
-  3) Jenkinsfile y documentación DevOps).
-- Evidencia: enlace al repositorio y capturas de los commits.
+Requisitos: Docker Desktop o Docker Engine con Docker Compose.
 
-## Fase 2. Docker
+1. Copia `.env.example` a `.env` y cambia `DB_PASSWORD` y `MYSQL_ROOT_PASSWORD` por contraseñas propias. No subas `.env` al repositorio.
+2. Desde la raíz del proyecto, construye e inicia los servicios:
 
-- `Dockerfile`: imagen base `php:8.3-apache`, instala la extensión
-  `mysqli`, copia `docker/stockmaster.ini` (sesión de 8 h) y copia el
-  proyecto a `/var/www/html/`. Expone el puerto 80.
-- `compose.yaml`: dos servicios, `web` (puerto 8080:80) y `db`
-  (MySQL 8.0, base `sistema_almacen`, con healthcheck; `BDv2.txt` se
-  importa al inicializar el volumen vacío).
-- Construir y ejecutar (ver `README_DOCKER.md`):
-  `docker compose up -d --build` y abrir http://localhost:8080.
-- Evidencia: Dockerfile, captura de la construcción de la imagen,
-  captura del contenedor en ejecución y captura de la app funcionando.
-
-## Fase 3. Jenkins
-
-1. Levantar Jenkins en local con el archivo de este repositorio:
    ```bash
-   docker compose -f docker-compose.jenkins.yml up -d
-   docker compose -f docker-compose.jenkins.yml logs -f jenkins
+   docker compose up -d --build
+   docker compose ps
    ```
-2. Abrir http://localhost:8081 y desbloquear Jenkins con la contraseña
-   inicial que muestran los logs (o
-   `/var/jenkins_home/secrets/initialAdminPassword`).
-3. Instalar el cliente de Docker dentro del contenedor de Jenkins (la
-   imagen oficial no lo trae y el Jenkinsfile lo necesita). Una sola
-   vez:
-   ```bash
-   docker exec -u root stockmaster_jenkins bash -c "apt-get update && apt-get install -y docker.io"
-   docker exec stockmaster_jenkins docker --version
-   docker exec stockmaster_jenkins docker compose version
-   ```
-   Si `docker compose` no aparece, instalar `docker-compose-plugin`
-   desde el repositorio oficial de Docker. Si Jenkins corre instalado
-   en la PC (no en contenedor) con Docker Desktop, este paso no hace
-   falta: `docker` ya está en el PATH.
-4. Instalar los complementos sugeridos y verificar: **Pipeline**,
-   **Git** y **GitHub** (en *Manage Jenkins → Plugins*).
-5. El archivo `Jenkinsfile` en la raíz del repositorio define el
-   pipeline: es el guion de etapas que Jenkins ejecuta. Sin él, el
-   trabajo Pipeline no sabría qué hacer.
-6. Evidencia: capturas de Jenkins funcionando, del proyecto Pipeline
-   y de la configuración de conexión con GitHub.
 
-## Fase 4. Integración: el Pipeline
+3. Abre [http://localhost:8080](http://localhost:8080). La pantalla de acceso está en [http://localhost:8080/HTML/login.html](http://localhost:8080/HTML/login.html).
 
-`Jenkinsfile` (en la raíz del repositorio):
+Para detener la aplicación y conservar la base de datos:
 
-| Etapa | Qué hace |
+```bash
+docker compose down
+```
+
+`compose.yaml` ejecuta dos servicios. `web` construye la imagen desde el `Dockerfile` y publica el puerto 8080 del equipo como el puerto 80 de Apache. `db` usa MySQL 8.0, no publica un puerto al equipo y se conecta a `web` por el nombre de servicio `db`. La base `sistema_almacen` se inicializa desde `BDv2.txt` cuando se crea por primera vez el volumen. Cambiar ese SQL no modifica una base que ya tenga datos.
+
+La aplicación se conecta usando las variables `DB_HOST`, `DB_NAME`, `DB_USER` y `DB_PASSWORD`. Para Compose, `DB_HOST` es `db`. Los datos de MySQL se conservan en el volumen `stockmaster_db_data`; `docker compose down -v` también borra ese volumen y sus datos.
+
+## GitHub y Docker Hub
+
+- Repositorio público actual: [hector0525/StockMasterr](https://github.com/hector0525/StockMasterr).
+- La práctica solicita que el repositorio se llame `Practica-DevOps-GitHub-Docker-Jenkins`. El nombre actual aún no coincide con ese requisito.
+- El historial actual contiene 16 commits. Se puede consultar en [GitHub](https://github.com/hector0525/StockMasterr/commits/main).
+- Imagen publicada: [hec2504/stockmaster en Docker Hub](https://hub.docker.com/r/hec2504/stockmaster).
+
+La imagen de Docker Hub contiene la aplicación web; para usarla con la base de datos y su configuración, la opción documentada es construir y ejecutar el proyecto con `compose.yaml`.
+
+## Integración continua con GitHub Actions
+
+El flujo [.github/workflows/ci.yml](.github/workflows/ci.yml) se ejecuta en cada `push` y `pull request` a `main`. El trabajo de validación revisa la sintaxis PHP y construye la imagen. En los `push` a `main`, un segundo trabajo publica la imagen en Docker Hub con las etiquetas `latest` y el SHA del commit, siempre que el trabajo anterior termine correctamente.
+
+Para habilitar la publicación, configura en los secretos de GitHub `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`. El token debe tener permiso para publicar imágenes; no guardes credenciales en el archivo de workflow.
+
+## Pipeline de Jenkins
+
+El archivo [Jenkinsfile](Jenkinsfile) define estas etapas:
+
+| Etapa | Acción |
 |---|---|
-| Checkout | Descarga el código desde GitHub (`checkout scm`). |
-| Verificar sintaxis PHP | `php -l` a todos los `.php` (imagen `php:8.3-cli`). |
-| Verificar JavaScript | `node --check` a `pwa.js`, `sw.js`, `sw-offline.js` y `scrip.js` (imagen `node:20-alpine`). |
-| Construir imagen Docker | `docker build -t stockmasterr:<número de build> -t stockmasterr:latest .` |
-| Desplegar y verificar | `docker compose up -d --build`, espera a que responda http://localhost:8080/ y comprueba `/` y `/HTML/login.html` con `curl`. |
+| Checkout | Obtiene el código del repositorio. |
+| Verificar sintaxis PHP | Ejecuta `php -l` sobre los archivos PHP. |
+| Verificar JavaScript | Revisa los service workers y scripts con `node --check`. |
+| Construir imagen Docker | Construye y etiqueta la imagen de la aplicación. |
+| Desplegar y verificar | Inicia la aplicación con Compose y comprueba la página principal y el login. |
 
-Al final, siempre limpia: `docker compose down -v` y borra la imagen
-de prueba. Si alguna etapa falla, el pipeline se marca en rojo y no
-llega al despliegue.
+Para iniciar Jenkins localmente:
 
-### Crear el trabajo Pipeline en Jenkins
+```bash
+docker compose -f docker-compose.jenkins.yml up -d
+docker compose -f docker-compose.jenkins.yml logs -f jenkins
+```
 
-1. *New Item → Pipeline*, nombre: `StockMasterr-Pipeline`.
-2. En *Pipeline → Definition*: **Pipeline script from SCM**,
-   SCM: **Git**, URL del repositorio
-   `https://github.com/<usuario>/Practica-DevOps-GitHub-Docker-Jenkins.git`,
-   Branch: `*/main`, Script Path: `Jenkinsfile`.
-3. Guardar y pulsar **Build Now**. Comprobar que las 5 etapas se
-   completan en verde.
+Abre [http://localhost:8081](http://localhost:8081). Jenkins necesita el cliente Docker, Compose v2 y los complementos Pipeline, Git y GitHub. La guía de configuración inicial y creación del trabajo está en [README_DOCKER.md](README_DOCKER.md) y en el propio `Jenkinsfile`.
 
-### Webhook de GitHub (dispara el pipeline con cada push)
+El pipeline está definido en el repositorio. Según el estado registrado en el entregable, falta dejar evidenciada la ejecución del trabajo Jenkins, su conexión configurada con GitHub y el webhook. El webhook requiere que GitHub pueda alcanzar Jenkins; si Jenkins solo está disponible en la red local, usa una ejecución manual o sondeo. Para un Jenkins ejecutado en contenedor, el pipeline comprueba la app a través de `host.docker.internal:8080`; desde el navegador del equipo se usa `localhost:8080`.
 
-1. En Jenkins, en el trabajo, activar **GitHub hook trigger for
-   GITScm polling** (sección *Build Triggers*).
-2. En GitHub, en el repositorio: *Settings → Webhooks → Add webhook*,
-   Payload URL: `http://<IP-o-dominio-de-Jenkins>:8081/github-webhook/`,
-   Content type: `application/json`, eventos: *Just the push event*.
-3. Hacer un push y comprobar que Jenkins inicia el build solo.
-   Nota: si Jenkins corre en local sin dominio público, GitHub no
-   puede llegar a él; en ese caso el webhook se documenta como
-   configurado y el build se dispara manual o por sondeo (*Poll SCM*).
+## Estado de la práctica y evidencias
 
-### Evidencia de la Fase 4
+| Parte | Estado documentado |
+|---|---|
+| Código y commits en GitHub | Completado; el repositorio actual tiene 16 commits. |
+| Docker y ejecución de la app | Completado; Compose inicia `web` y `db`, y la aplicación responde en el puerto 8080. |
+| Publicación e integración continua | Configuradas con Docker Hub y GitHub Actions. |
+| Nombre requerido del repositorio | Pendiente; el repositorio aún se llama `StockMasterr`. |
+| Jenkins | Archivos preparados; pendiente registrar la configuración y ejecución del pipeline, instalar/verificar el cliente Docker y documentar el webhook. |
+| Evidencias de Jenkins | Pendientes de incorporar al entregable. |
 
-- Capturas de las etapas del pipeline en verde.
-- Captura de la app funcionando tras el despliegue del pipeline.
-- Captura del webhook en GitHub (o nota de la limitación local).
+Las capturas del historial, Docker, la aplicación, Docker Hub y GitHub Actions forman parte de la evidencia del proyecto. El informe incluye las conclusiones de cuatro integrantes; queda pendiente la conclusión de Jorge Uriel González Hernández. Las conclusiones individuales y la evidencia de Jenkins corresponden al informe de entrega; no se sustituyen por texto genérico en este README.
 
-## Conclusiones por integrante
+## Documentación relacionada
 
-_Cada integrante escribe aquí su conclusión: qué aprendió a lo largo
-del curso, qué le gustó, qué no le gustó, qué le faltó aprender._
-
-### Bermúdez Tapia Héctor Antonio
-_(pendiente de escribir)_
-
-### Navarro de la Cruz Jonathan Patricio
-_(pendiente de escribir)_
-
-### Sánchez Romero Christian
-_(pendiente de escribir)_
-
-### Vilchis Ezpinoza Alfredo
-_(pendiente de escribir)_
-
-### González Hernández Jorge Uriel
-_(pendiente de escribir)_
+- [README_DOCKER.md](README_DOCKER.md): ejecución, notificaciones push y funcionamiento sin conexión.
+- [mapa.txt](mapa.txt): mapa de pantallas y módulos.
+- [BDv2.txt](BDv2.txt): esquema e inicialización de la base de datos.
